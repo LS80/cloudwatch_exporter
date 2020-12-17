@@ -9,7 +9,7 @@ RUN apk add --no-cache maven \
     && mv target/cloudwatch_exporter-*-with-dependencies.jar /cloudwatch_exporter.jar
 
 FROM amazoncorretto:11-alpine
-MAINTAINER Prometheus Team <prometheus-developers@googlegroups.com>
+LABEL maintainer="Prometheus Team <prometheus-developers@googlegroups.com>"
 
 EXPOSE 9106
 
