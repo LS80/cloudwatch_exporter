@@ -24,32 +24,33 @@ jobs:
       - checkout
       - setup_remote_docker:
           version: 19.03.13
+          docker_layer_caching: true
       - run:
           name: Build image
           command: |
-            repository="${DOCKER_REGISTRY}/${DOCKER_ORG}/cloudwatch-exporter"
-            docker build -t ${repository}:latest --pull .
-            if [[ -n "$CIRCLE_TAG" ]]; then
-              docker tag -t ${repository}:"${CIRCLE_TAG}" ${repository}:latest
-            fi
-      - run:
-          name: Login
-          command: |
-            docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD $DOCKER_REGISTRY
+            docker build -t "${CIRCLE_PROJECT_REPONAME}" --pull .
       - run:
           name: Publish image
           command: |
-            docker push ${repository}:latest
             if [[ -n "$CIRCLE_TAG" ]]; then
-              docker push ${repository}:"${CIRCLE_TAG}"
+              repository="${DOCKER_REGISTRY}/${DOCKER_ORG}/cloudwatch-exporter"
+              docker tag "${CIRCLE_PROJECT_REPONAME}" "${repository}:${CIRCLE_TAG}"
+              docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD $DOCKER_REGISTRY
+              docker push "${repository}:${CIRCLE_TAG}"
             fi
 
 workflows:
   version: 2
   cloudwatch_exporter:
     jobs:
-      - build
+      - build:
+          filters:
+            tags:
+              only: /.*/
       - publish_image:
           context: org-global
           requires:
             - build
+          filters:
+            tags:
+              only: /.*/
