@@ -2,9 +2,8 @@ version: 2.1
 
 jobs:
   build:
-    working_directory: ~/circleci-java
     docker:
-      - image: circleci/openjdk:8-jdk-stretch
+      - image: circleci/openjdk:11-jdk-buster
 
     steps:
       - checkout
@@ -17,43 +16,33 @@ jobs:
           key: circleci-demo-java-spring-{{ checksum "pom.xml" }}
       - run: mvn package
 
-  publish_image_to_quay:
+  publish_image:
     docker:
-      - image: circleci/openjdk:8-jdk-stretch
+      - image: circleci/openjdk:11-jdk-buster
 
     steps:
       - checkout
       - setup_remote_docker:
-          version: 18.06.0-ce
-      - run:
-          command: docker run --privileged linuxkit/binfmt:v0.7
+          version: 19.03.13
       - run: |
-          docker build -t quay.io/prometheus/cloudwatch-exporter:latest --pull .
+          repository="${DOCKER_REGISTRY}/${DOCKER_ORG}/cloudwatch-exporter"
+          docker build -t ${repository}:latest --pull .
           if [[ -n "$CIRCLE_TAG" ]]; then
-            docker tag -t quay.io/prometheus/cloudwatch-exporter:"${CIRCLE_TAG}" quay.io/prometheus/cloudwatch-exporter:latest
+            docker tag -t ${repository}:"${CIRCLE_TAG}" ${repository}:latest
           fi
-      - run: docker images
-      - run: docker login -u $QUAY_LOGIN -p $QUAY_PASSWORD quay.io
+      - run: docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD $DOCKER_REGISTRY
       - run: |
-          docker push quay.io/prometheus/cloudwatch-exporter:latest
+          docker push ${repository}:latest
           if [[ -n "$CIRCLE_TAG" ]]; then
-            docker push quay.io/prometheus/cloudwatch-exporter:"${CIRCLE_TAG}"
+            docker push ${repository}:"${CIRCLE_TAG}"
           fi
 
 workflows:
   version: 2
   cloudwatch_exporter:
     jobs:
-      - build:
-          filters:
-            tags:
-              only: /.*/
-      - publish_image_to_quay:
-          context: org-context
+      - build
+      - publish_image:
+          context: org-global
           requires:
             - build
-          filters:
-            branches:
-              only: master
-            tags:
-              only: /.*/
