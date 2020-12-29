@@ -14,8 +14,8 @@ LABEL maintainer="Prometheus Team <prometheus-developers@googlegroups.com>"
 EXPOSE 9106
 
 RUN mkdir /config \
-    && addgroup -S exporter \
-    && adduser -S exporter -G exporter
+    && addgroup -S -g 1000 exporter \
+    && adduser -S -G exporter -u 1000 exporter
 USER exporter
 
 COPY --from=builder --chown=exporter:exporter /cloudwatch_exporter.jar .
